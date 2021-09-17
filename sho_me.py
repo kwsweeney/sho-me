@@ -13,26 +13,26 @@ def get_ip_addrs(region):
     # Sets the region and creates the configuration
     # Authentication pieces are inherited from AWS credentials
     config = Config(region_name=region)
-    ec2 = client('ec2', config=config)
-    filters = [{'Name': 'public-ip', 'Values': ['*']}]
+    ec2 = client("ec2", config=config)
+    filters = [{"Name": "public-ip", "Values": ["*"]}]
 
     # Get the Elastic IPs from AWS
     try:
         response = ec2.describe_addresses(Filters=filters)
-        hosts = response.get('Addresses')
+        hosts = response.get("Addresses")
     except ClientError as cerr:
-        print(f'Error: {cerr}')
+        print(f"Error: {cerr}")
     except NoCredentialsError as crderr:
-        print(f'Error: {crderr}, ensure you have AWS credentials')
+        print(f"Error: {crderr}, ensure you have AWS credentials")
 
     # Loop through the hosts and strip only the IP addresses
     ip_addrs = []
     try:
         for host in hosts:
-            addr = host.get('PublicIp')
+            addr = host.get("PublicIp")
             ip_addrs.append(addr)
     except UnboundLocalError:
-        print('Error: No hosts provided.')
+        print("Error: No hosts provided.")
     return ip_addrs
 
 
@@ -46,7 +46,7 @@ def check_shodan(addrs, key, quiet):
     for addr in addrs:
         try:
             result = api.host(addr)
-            ports = result.get('ports')
+            ports = result.get("ports")
             print(f"{addr} Found: {ports}")
         except APIError as e:
             if not quiet:
@@ -55,15 +55,21 @@ def check_shodan(addrs, key, quiet):
 
 
 @command()
-@option('-k', '--key', required=True, help='API key for Shodan')
-@option('-q', '--quiet', is_flag=True, default=False, help='Only prints IPs that are found in Shodan')
-@option('-r', '--region', default='us-east-1', help='AWS region.')
+@option("-k", "--key", required=True, help="API key for Shodan")
+@option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    default=False,
+    help="Only prints IPs that are found in Shodan",
+)
+@option("-r", "--region", default="us-east-1", help="AWS region.")
 def cli(key, quiet, region):
     """Compiles a list of Elastic IP addresses and checks to see if they're indexed by Shodan"""
 
     # Get Elastic IPs from the specified region
-    if region == 'all':
-        regions = ['us-east-1', 'us-east-2', 'us-west-1', 'us-west-2']
+    if region == "all":
+        regions = ["us-east-1", "us-east-2", "us-west-1", "us-west-2"]
         elastic_ip_addrs = []
         for region in regions:
             ips = get_ip_addrs(region)
@@ -76,5 +82,5 @@ def cli(key, quiet, region):
     check_shodan(elastic_ip_addrs, key, quiet)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
