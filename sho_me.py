@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 from boto3 import client
 from botocore.config import Config
-import click
-from shodan import Shodan, APIError
+from botocore.exceptions import ClientError, NoCredentialsError
+from click import command, option
+from shodan import APIError, Shodan
 from time import sleep
 
 
@@ -16,14 +17,22 @@ def get_ip_addrs(region):
     filters = [{'Name': 'public-ip', 'Values': ['*']}]
 
     # Get the Elastic IPs from AWS
-    response = ec2.describe_addresses(Filters=filters)
-    hosts = response.get('Addresses')
+    try:
+        response = ec2.describe_addresses(Filters=filters)
+        hosts = response.get('Addresses')
+    except ClientError as cerr:
+        print(f'Error: {cerr}')
+    except NoCredentialsError as crderr:
+        print(f'Error: {crderr}, ensure you have AWS credentials')
 
     # Loop through the hosts and strip only the IP addresses
     ip_addrs = []
-    for host in hosts:
-        addr = host.get('PublicIp')
-        ip_addrs.append(addr)
+    try:
+        for host in hosts:
+            addr = host.get('PublicIp')
+            ip_addrs.append(addr)
+    except UnboundLocalError:
+        print('Error: No hosts provided.')
     return ip_addrs
 
 
@@ -45,10 +54,10 @@ def check_shodan(addrs, key, quiet):
         sleep(1)
 
 
-@click.command()
-@click.option('-k', '--key', required=True, help='API key for Shodan')
-@click.option('-q', '--quiet', is_flag=True, default=False, help='Only prints IPs that are found in Shodan')
-@click.option('-r', '--region', default='us-east-1', help='AWS region.')
+@command()
+@option('-k', '--key', required=True, help='API key for Shodan')
+@option('-q', '--quiet', is_flag=True, default=False, help='Only prints IPs that are found in Shodan')
+@option('-r', '--region', default='us-east-1', help='AWS region.')
 def cli(key, quiet, region):
     """Compiles a list of Elastic IP addresses and checks to see if they're indexed by Shodan"""
 
