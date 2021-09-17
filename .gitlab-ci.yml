@@ -1,0 +1,13 @@
+---
+include:
+  - project: 'ksweeney/pipelinomicon'
+    file: 
+      - 'python/python-audit.yml'
+      - 'python/python-format.yml'
+      - 'python/python-lint.yml'
+      - 'python/python-sast.yml'
+
+stages:
+  - lint
+  - format
+  - audit
