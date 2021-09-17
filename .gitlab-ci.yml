@@ -10,10 +10,11 @@ include:
       - python/python-format.yml
       - python/python-lint.yml
   - template: 
-    - 'Dependency-Scanning.gitlab-ci.yml'
-    - 'Security/License-Scanning.gitlab-ci.yml'
-    - 'Security/Secret-Detection.gitlab-ci.yml'
-    - 'Security/SAST.gitlab-ci.yml'
+    file:
+      - 'Dependency-Scanning.gitlab-ci.yml'
+      - 'Security/License-Scanning.gitlab-ci.yml'
+      - 'Security/Secret-Detection.gitlab-ci.yml'
+      - 'Security/SAST.gitlab-ci.yml'
 
 stages:
   - lint
