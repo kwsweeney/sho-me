@@ -7,8 +7,54 @@ from shodan import APIError, Shodan
 from time import sleep
 
 
+def build_region_list():
+    """
+    Builds a list of all AWS regions
+
+    Args:
+        NONE
+
+    Returns:
+        regions:
+            TYPE: LIST
+            INFO: All regions available to an AWS account
+    """
+
+    # Sets the region and creates the configuration
+    config = Config(region_name="us-east-1")
+    ec2 = client("ec2", config=config)
+
+    # Get the region data from AWS
+    regions = []
+    try:
+        response = ec2.describe_regions()
+
+        # Loop through responses and grab the list of regions
+        for r in response.get("Regions"):
+            region = r.get("RegionName")
+            regions.append(region)
+    except ClientError as cerr:
+        print(f"Error: {cerr}")
+    except NoCredentialsError as crderr:
+        print(f"Error: {crderr}, ensure you have AWS credentials")
+
+    return regions
+
+
 def get_ip_addrs(region):
-    """Gets Elastic IP addresses from an AWS region for an account"""
+    """
+    Gets Elastic IP addresses from an AWS region for an account
+
+    Args:
+        region:
+            TYPE: String
+            INFO: A single AWS region
+
+    Returns:
+        ip_addrs:
+            TYPE: List
+            INFO: Elastic IP addresses found in the region
+    """
 
     # Sets the region and creates the configuration
     # Authentication pieces are inherited from AWS credentials
@@ -37,7 +83,23 @@ def get_ip_addrs(region):
 
 
 def check_shodan(addrs, key, quiet):
-    """Checks if IP address exists in Shodan's index and lists ports it found for the IP."""
+    """
+    Checks if IP address exists in Shodan's index and lists ports it found for the IP.
+
+    Args:
+        addrs:
+            TYPE: List
+            INFO: IP addresses as strings
+        key:
+            TYPE: String
+            INFO: Shodan API key
+        quiet:
+            TYPE: Bool
+            INFO: Flag to only print relevant entries
+
+    Returns:
+        NONE
+    """
 
     # Build the API connection with the API key
     api = Shodan(key)
@@ -67,14 +129,19 @@ def check_shodan(addrs, key, quiet):
 def cli(key, quiet, region):
     """Compiles a list of Elastic IP addresses and checks to see if they're indexed by Shodan"""
 
+    # Initial empty list of Elastic IPs
+    elastic_ip_addrs = []
+
     # Get Elastic IPs from the specified region
     if region == "all":
-        regions = ["us-east-1", "us-east-2", "us-west-1", "us-west-2"]
-        elastic_ip_addrs = []
-        for region in regions:
-            ips = get_ip_addrs(region)
-            for ip in ips:
-                elastic_ip_addrs.append(ip)
+        regions = build_region_list()
+
+        # Grab the addresses for each region, add them to list of Elastic IPs
+        for r in regions:
+            addrs = get_ip_addrs(r)
+            elastic_ip_addrs.extend(addrs)
+
+    # Only check a single defined region
     else:
         elastic_ip_addrs = get_ip_addrs(region)
 
